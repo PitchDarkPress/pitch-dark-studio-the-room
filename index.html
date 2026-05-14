@@ -1,0 +1,382 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitch Dark Studios — Architecture Pass</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+width:100%;
+height:100%;
+overflow:hidden;
+background:#000;
+font-family:Georgia,serif;
+}
+
+canvas{display:block}
+
+#overlay{
+position:fixed;
+inset:0;
+pointer-events:none;
+background:
+radial-gradient(circle at center, transparent 52%, rgba(0,0,0,.35) 100%),
+linear-gradient(to bottom, rgba(0,0,0,.08), rgba(0,0,0,.32));
+z-index:5;
+}
+
+#ui{
+position:fixed;
+left:28px;
+bottom:24px;
+color:#d0a060;
+font-size:12px;
+letter-spacing:2px;
+opacity:.75;
+line-height:1.8;
+z-index:10;
+}
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+↑ — FORWARD<br>
+↓ — BACKWARD<br>
+← — LOOK LEFT<br>
+→ — LOOK RIGHT
+</div>
+
+<div id="overlay"></div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x090807,0.0045);
+
+const camera = new THREE.PerspectiveCamera(
+62,
+window.innerWidth/window.innerHeight,
+0.1,
+2000
+);
+
+camera.position.set(0,3.5,18);
+
+const renderer = new THREE.WebGLRenderer({
+antialias:true,
+powerPreference:"high-performance"
+});
+
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+document.body.appendChild(renderer.domElement);
+
+const room = new THREE.Group();
+scene.add(room);
+
+const floor = new THREE.Mesh(
+new THREE.PlaneGeometry(80,80),
+new THREE.MeshStandardMaterial({
+color:0x372215,
+roughness:.95
+})
+);
+
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+room.add(floor);
+
+const wallMat = new THREE.MeshStandardMaterial({
+color:0x1b130f,
+roughness:1
+});
+
+function wall(w,h,x,y,z,ry=0){
+const mesh = new THREE.Mesh(
+new THREE.PlaneGeometry(w,h),
+wallMat
+);
+
+mesh.position.set(x,y,z);
+mesh.rotation.y = ry;
+
+room.add(mesh);
+}
+
+wall(80,34,0,17,-40,0);
+wall(80,34,0,17,40,Math.PI);
+wall(80,34,-40,17,0,Math.PI/2);
+wall(80,34,40,17,0,-Math.PI/2);
+
+const ceiling = new THREE.Mesh(
+new THREE.PlaneGeometry(80,80),
+new THREE.MeshStandardMaterial({color:0x0b0a09})
+);
+
+ceiling.rotation.x = Math.PI/2;
+ceiling.position.y = 34;
+
+room.add(ceiling);
+
+function gothicArch(x,z){
+
+const group = new THREE.Group();
+
+const arch = new THREE.Mesh(
+new THREE.CylinderGeometry(4.5,4.5,20,20,1,true,0,Math.PI),
+new THREE.MeshStandardMaterial({
+color:0x161110,
+side:THREE.DoubleSide
+})
+);
+
+arch.rotation.z = Math.PI/2;
+arch.position.y = 10;
+
+group.add(arch);
+
+group.position.set(x,0,z);
+
+room.add(group);
+}
+
+gothicArch(0,-39.6);
+
+function shelf(x,z,rot=0,height=24){
+
+const g = new THREE.Group();
+
+const body = new THREE.Mesh(
+new THREE.BoxGeometry(6,height,1.4),
+new THREE.MeshStandardMaterial({
+color:0x301d13,
+roughness:.9
+})
+);
+
+body.position.y = height/2;
+g.add(body);
+
+for(let y=1.2;y<height-1;y+=2.4){
+
+const plank = new THREE.Mesh(
+new THREE.BoxGeometry(6.1,.12,1.5),
+new THREE.MeshStandardMaterial({color:0x24160f})
+);
+
+plank.position.y = y;
+g.add(plank);
+}
+
+for(let i=0;i<220;i++){
+
+const b = new THREE.Mesh(
+new THREE.BoxGeometry(
+.22,
+1+Math.random()*.9,
+.8
+),
+new THREE.MeshStandardMaterial({
+color:new THREE.Color().setHSL(
+.05+Math.random()*.03,
+.45,
+.20+Math.random()*.15
+)
+})
+);
+
+b.position.set(
+-2.3+Math.random()*4.6,
+1+Math.floor(i/20)*2.2,
+0
+);
+
+g.add(b);
+}
+
+g.position.set(x,0,z);
+g.rotation.y = rot;
+
+room.add(g);
+}
+
+for(let i=-24;i<=24;i+=12){
+shelf(-34,i,Math.PI/2,26);
+shelf(34,i,-Math.PI/2,26);
+}
+
+shelf(-12,-34,0,24);
+shelf(12,-34,0,24);
+
+const desk = new THREE.Mesh(
+new THREE.BoxGeometry(10,1.2,5),
+new THREE.MeshStandardMaterial({
+color:0x4a2f1d,
+roughness:.88
+})
+);
+
+desk.position.set(0,.6,8);
+desk.castShadow = true;
+room.add(desk);
+
+const chair = new THREE.Mesh(
+new THREE.BoxGeometry(2.2,2.2,2.2),
+new THREE.MeshStandardMaterial({
+color:0x24160f
+})
+);
+
+chair.position.set(1,1.2,13);
+chair.rotation.y = .35;
+room.add(chair);
+
+const lamp = new THREE.PointLight(
+0xffc07a,
+55,
+70,
+1.5
+);
+
+lamp.position.set(0,6,8);
+lamp.castShadow = true;
+room.add(lamp);
+
+const lampGlow = new THREE.Mesh(
+new THREE.SphereGeometry(.22,20,20),
+new THREE.MeshBasicMaterial({color:0xffd3a0})
+);
+
+lampGlow.position.copy(lamp.position);
+room.add(lampGlow);
+
+const moon = new THREE.SpotLight(
+0xbfd8ff,
+48,
+180,
+0.65,
+0.5,
+1
+);
+
+moon.position.set(0,28,-22);
+moon.target.position.set(0,6,-35);
+
+scene.add(moon.target);
+scene.add(moon);
+
+const windowFrame = new THREE.Mesh(
+new THREE.BoxGeometry(14,22,.5),
+new THREE.MeshStandardMaterial({
+color:0x161616
+})
+);
+
+windowFrame.position.set(0,12,-39.5);
+room.add(windowFrame);
+
+for(let i=0;i<8;i++){
+
+const bar = new THREE.Mesh(
+new THREE.BoxGeometry(.12,22,.12),
+new THREE.MeshBasicMaterial({
+color:0x2d2d2d
+})
+);
+
+bar.position.set(-5+i*1.4,12,-39.2);
+room.add(bar);
+}
+
+const ambient = new THREE.AmbientLight(
+0x6a4b2e,
+0.5
+);
+
+scene.add(ambient);
+
+let yaw = 0;
+const keys = {};
+
+window.addEventListener('keydown',e=>{
+keys[e.key]=true;
+});
+
+window.addEventListener('keyup',e=>{
+keys[e.key]=false;
+});
+
+function move(){
+
+const speed=.07;
+
+const forward = new THREE.Vector3(
+Math.sin(yaw),
+0,
+Math.cos(yaw)
+);
+
+if(keys['ArrowUp']){
+camera.position.add(
+forward.clone().multiplyScalar(-speed)
+);
+}
+
+if(keys['ArrowDown']){
+camera.position.add(
+forward.clone().multiplyScalar(speed)
+);
+}
+
+if(keys['ArrowLeft']) yaw += .02;
+if(keys['ArrowRight']) yaw -= .02;
+
+camera.position.x = Math.max(-36,Math.min(36,camera.position.x));
+camera.position.z = Math.max(-36,Math.min(36,camera.position.z));
+
+camera.rotation.order='YXZ';
+camera.rotation.y=yaw;
+camera.rotation.x=0;
+}
+
+function animate(){
+
+requestAnimationFrame(animate);
+
+move();
+
+lamp.intensity =
+54 + Math.sin(Date.now()*0.002)*1.5;
+
+renderer.render(scene,camera);
+}
+
+animate();
+
+window.addEventListener('resize',()=>{
+
+camera.aspect =
+window.innerWidth/window.innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+window.innerWidth,
+window.innerHeight
+);
+});
+</script>
+
+</body>
+</html>
