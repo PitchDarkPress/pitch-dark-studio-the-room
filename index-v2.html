@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pitch Dark Studio — V2</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+width:100%;
+height:100%;
+overflow:hidden;
+background:#000;
+font-family:Georgia,serif;
+}
+
+canvas{display:block}
+
+#ui{
+position:fixed;
+bottom:20px;
+left:20px;
+color:#6e6e6e;
+font-size:11px;
+letter-spacing:2px;
+line-height:1.8;
+opacity:.7;
+z-index:20;
+}
+
+#title{
+position:fixed;
+top:22px;
+left:50%;
+transform:translateX(-50%);
+color:#3d3d3d;
+font-size:11px;
+letter-spacing:5px;
+opacity:.7;
+z-index:20;
+}
+
+#overlay{
+position:fixed;
+inset:0;
+pointer-events:none;
+background:
+radial-gradient(circle at center,
+transparent 28%,
+rgba(0,0,0,.58) 72%,
+rgba(0,0,0,.94) 100%);
+z-index:10;
+}
+</style>
+</head>
+
+<body>
+
+<div id="title">PITCH DARK STUDIO — V2</div>
+
+<div id="ui">
+↑ ↓ MOVE<br>
+← → LOOK
+</div>
+
+<div id="overlay"></div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x000000,0.032);
+
+const camera = new THREE.PerspectiveCamera(
+55,
+window.innerWidth/window.innerHeight,
+0.1,
+100
+);
+
+camera.position.set(0,1.9,8.5);
+
+const renderer = new THREE.WebGLRenderer({
+antialias:true,
+powerPreference:'high-performance'
+});
+
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const blackMat = new THREE.MeshStandardMaterial({
+color:0x070707,
+roughness:1
+});
+
+const deskMat = new THREE.MeshStandardMaterial({
+color:0x1b1511,
+roughness:.94
+});
+
+const chairMat = new THREE.MeshStandardMaterial({
+color:0x17120f,
+roughness:.95
+});
+
+const rugMat = new THREE.MeshStandardMaterial({
+color:0x241612,
+roughness:1
+});
+
+const paperMat = new THREE.MeshStandardMaterial({
+color:0x5b4b3f,
+roughness:1
+});
+
+const metalMat = new THREE.MeshStandardMaterial({
+color:0x4b4b4b,
+roughness:.55,
+metalness:.55
+});
+
+const floor = new THREE.Mesh(
+new THREE.PlaneGeometry(50,50),
+new THREE.MeshStandardMaterial({
+color:0x050505,
+roughness:1
+})
+);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const rug = new THREE.Mesh(
+new THREE.PlaneGeometry(2.05,1.42),
+rugMat
+);
+rug.rotation.x = -Math.PI/2;
+rug.position.y = 0.01;
+rug.position.z = .72;
+rug.receiveShadow = true;
+scene.add(rug);
+
+const desk = new THREE.Group();
+scene.add(desk);
+
+const top = new THREE.Mesh(
+new THREE.BoxGeometry(7,0.18,2.8),
+deskMat
+);
+top.castShadow = true;
+top.receiveShadow = true;
+top.position.y = 2.2;
+desk.add(top);
+
+function box(w,h,d,x,y,z,mat){
+const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+m.position.set(x,y,z);
+m.castShadow = true;
+m.receiveShadow = true;
+scene.add(m);
+return m;
+}
+
+function deskPart(w,h,d,x,y,z){
+const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),deskMat);
+m.position.set(x,y,z);
+m.castShadow = true;
+m.receiveShadow = true;
+desk.add(m);
+return m;
+}
+
+deskPart(.25,2.2,.25,-3.1,1.1,-1.1);
+deskPart(.25,2.2,.25,3.1,1.1,-1.1);
+deskPart(.25,2.2,.25,-3.1,1.1,1.1);
+deskPart(.25,2.2,.25,3.1,1.1,1.1);
+
+deskPart(1.2,2,2.4,-2.2,1,-0.05);
+deskPart(1.2,2,2.4,2.2,1,-0.05);
+
+// drawer lines and handles
+for(let side of [-2.2,2.2]){
+  for(let y of [.45,1.05,1.65]){
+    const line = deskPart(1.05,.03,.05,side,y,1.18);
+    line.material = blackMat;
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(.38,.045,.06),metalMat);
+    handle.position.set(side,y+0.07,1.23);
+    handle.castShadow = true;
+    desk.add(handle);
+  }
+}
+
+// Computer
+const computer = new THREE.Group();
+scene.add(computer);
+
+const monitor = new THREE.Mesh(
+new THREE.BoxGeometry(1.4,1.3,1.1),
+blackMat
+);
+monitor.castShadow = true;
+monitor.receiveShadow = true;
+monitor.position.set(0,3.0,0);
+computer.add(monitor);
+
+const screen = new THREE.Mesh(
+new THREE.PlaneGeometry(.9,.7),
+new THREE.MeshBasicMaterial({color:0x0d4422})
+);
+screen.position.set(0,3.03,.56);
+computer.add(screen);
+
+// fake green text
+for(let i=0;i<12;i++){
+  const line = new THREE.Mesh(
+    new THREE.PlaneGeometry(.45 + Math.random()*.28,.012),
+    new THREE.MeshBasicMaterial({color:0x22bb66})
+  );
+  line.position.set(-.12 + Math.random()*.08,3.22 - i*.045,.565);
+  computer.add(line);
+}
+
+const base = new THREE.Mesh(
+new THREE.BoxGeometry(1.8,.25,1.2),
+blackMat
+);
+base.castShadow = true;
+base.receiveShadow = true;
+base.position.set(0,2.15,0);
+computer.add(base);
+
+const keyboard = new THREE.Mesh(
+new THREE.BoxGeometry(1.2,.08,.55),
+blackMat
+);
+keyboard.castShadow = true;
+keyboard.receiveShadow = true;
+keyboard.position.set(0,2.27,.72);
+computer.add(keyboard);
+
+const redLight = new THREE.Mesh(
+new THREE.SphereGeometry(.035,12,12),
+new THREE.MeshBasicMaterial({color:0xff2200})
+);
+redLight.position.set(.48,2.22,.63);
+computer.add(redLight);
+
+// Notebook, crammed papers
+const notebook = new THREE.Mesh(
+new THREE.BoxGeometry(.78,.13,.52),
+paperMat
+);
+notebook.position.set(-1.72,2.31,.2);
+notebook.rotation.y = .08;
+notebook.castShadow = true;
+notebook.receiveShadow = true;
+scene.add(notebook);
+
+for(let i=0;i<6;i++){
+  const slip = new THREE.Mesh(
+    new THREE.BoxGeometry(.72,.018,.48),
+    new THREE.MeshStandardMaterial({color:0x4f4439,roughness:1})
+  );
+  slip.position.set(-1.72 + (Math.random()-.5)*.08,2.39+i*.018,.2 + (Math.random()-.5)*.08);
+  slip.rotation.y = .08 + (Math.random()-.5)*.18;
+  slip.castShadow = true;
+  scene.add(slip);
+}
+
+// Keys
+const keyGroup = new THREE.Group();
+scene.add(keyGroup);
+
+const ring = new THREE.Mesh(new THREE.TorusGeometry(.075,.012,8,18),metalMat);
+ring.rotation.x = Math.PI/2;
+ring.position.set(-1.18,2.33,.34);
+keyGroup.add(ring);
+
+for(let i=0;i<3;i++){
+  const stem = new THREE.Mesh(new THREE.BoxGeometry(.20,.018,.035),metalMat);
+  stem.position.set(-1.04 + i*.035,2.33,.32 + i*.035);
+  stem.rotation.y = .45 + i*.35;
+  stem.castShadow = true;
+  keyGroup.add(stem);
+}
+
+// Chair: wooden chair inspired by reference
+const chair = new THREE.Group();
+scene.add(chair);
+
+function chairPart(w,h,d,x,y,z,ry=0){
+const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),chairMat);
+m.position.set(x,y,z);
+m.rotation.y = ry;
+m.castShadow = true;
+m.receiveShadow = true;
+chair.add(m);
+return m;
+}
+
+chairPart(1.05,.12,.95,0,1.15,2.15);
+chairPart(1.08,.14,.08,0,1.75,2.55);
+chairPart(.09,.9,.08,-.46,1.48,2.55);
+chairPart(.09,.9,.08,.46,1.48,2.55);
+chairPart(.055,.82,.06,-.22,1.47,2.55);
+chairPart(.055,.82,.06,0,1.47,2.55);
+chairPart(.055,.82,.06,.22,1.47,2.55);
+
+chairPart(.08,1,.08,-.42,.55,1.76);
+chairPart(.08,1,.08,.42,.55,1.76);
+chairPart(.08,1.25,.08,-.42,.62,2.54);
+chairPart(.08,1.25,.08,.42,.62,2.54);
+chairPart(.08,.08,.9,-.52,.93,2.15);
+chairPart(.08,.08,.9,.52,.93,2.15);
+
+// Lighting
+const ambient = new THREE.AmbientLight(0x1a1a1a,.38);
+scene.add(ambient);
+
+const spot = new THREE.SpotLight(0xe8edf7,55,45,.30,.45,1);
+spot.position.set(0,11,-1);
+spot.target.position.set(0,2.2,0);
+spot.castShadow = true;
+spot.shadow.mapSize.width = 1024;
+spot.shadow.mapSize.height = 1024;
+scene.add(spot.target);
+scene.add(spot);
+
+const screenGlow = new THREE.PointLight(0x00aa55,1.2,4);
+screenGlow.position.set(0,3,.8);
+scene.add(screenGlow);
+
+const redGlow = new THREE.PointLight(0xff2200,.18,.6);
+redGlow.position.set(.48,2.22,.65);
+scene.add(redGlow);
+
+// subtle atmosphere dust
+const dustGeo = new THREE.BufferGeometry();
+const dustCount = 600;
+const dustPos = new Float32Array(dustCount * 3);
+
+for(let i=0;i<dustCount;i++){
+  dustPos[i*3] = (Math.random() - .5) * 7;
+  dustPos[i*3+1] = 1 + Math.random() * 7;
+  dustPos[i*3+2] = (Math.random() - .5) * 7;
+}
+
+dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
+
+const dust = new THREE.Points(
+dustGeo,
+new THREE.PointsMaterial({
+color:0xffffff,
+size:.018,
+transparent:true,
+opacity:.07
+})
+);
+scene.add(dust);
+
+let yaw = 0;
+const keysPressed = {};
+
+window.addEventListener('keydown',e=>keysPressed[e.key]=true);
+window.addEventListener('keyup',e=>keysPressed[e.key]=false);
+
+function move(){
+const speed = .022;
+
+const forward = new THREE.Vector3(
+Math.sin(yaw),
+0,
+Math.cos(yaw)
+);
+
+if(keysPressed['ArrowUp']){
+camera.position.add(forward.clone().multiplyScalar(-speed));
+}
+
+if(keysPressed['ArrowDown']){
+camera.position.add(forward.clone().multiplyScalar(speed));
+}
+
+if(keysPressed['ArrowLeft']) yaw += .015;
+if(keysPressed['ArrowRight']) yaw -= .015;
+
+camera.position.z = Math.min(14,Math.max(4,camera.position.z));
+camera.position.x = Math.min(4,Math.max(-4,camera.position.x));
+
+camera.rotation.order = 'YXZ';
+camera.rotation.y = yaw;
+}
+
+function animate(){
+requestAnimationFrame(animate);
+move();
+dust.rotation.y += 0.00015;
+renderer.render(scene,camera);
+}
+
+animate();
+
+window.addEventListener('resize',()=>{
+camera.aspect = window.innerWidth/window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+</body>
+</html>
